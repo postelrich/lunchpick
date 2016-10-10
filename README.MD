@@ -17,6 +17,23 @@ This script was written and only ran with python 3 though should run with python
 
 Run:
 
-`python lunchpick.py`
+`python lunchpick.py -u USER_ID`
 
-and enter the user id at the prompt.
+If your user id starts with a dash, you must call it with `-u='-USERinoinseFO23-fc'`.
+
+Also, you can pass in a bookmark label if you have your lunch spots subsetted:
+
+`python lunchpick.py -u USER_ID -l LABEL`
+
+```
+usage: lunchpick.py [-h] -u USER_ID [-l LABEL]
+
+Pick a lunch spot.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -u USER_ID, --user_id USER_ID
+                        yelp user id
+  -l LABEL, --label LABEL
+                        bookmark label
+```

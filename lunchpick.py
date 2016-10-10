@@ -1,3 +1,4 @@
+import argparse
 import bs4
 import random
 import requests
@@ -34,13 +35,36 @@ def get_bookmarked_restaurants(url):
     return restaurants
 
 
-def random_restaurant(url):
-    restaurants = get_bookmarked_restaurants(url)
+def random_restaurant(restaurants):
     return random.choice(restaurants)
 
 
-if __name__ == '__main__':
-    user_id = input("What is your Yelp user id? ")
+def format_url(args):
+    url = URL.format(args.user_id)
+    if args.label:
+        url += '&label={}'.format(args.label)
+    return url
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(description='Pick a lunch spot.')
+    parser.add_argument('-u', '--user_id', type=str, required=True,
+                        help='yelp user id')
+    parser.add_argument('-l', '--label', type=str, help='bookmark label')
+    return parser.parse_args()
+
+
+def main():
+    args = parse_args()
+    url = format_url(args)
     print("Pulling down your bookmarked restaurants...")
-    restaurant = random_restaurant(URL.format(user_id))
+    restaurants = get_bookmarked_restaurants(url)
+    if not restaurants:
+        raise ValueError("No restaurants found!")
+    print("Found {} restaurants.".format(len(restaurants)))
+    restaurant = random_restaurant(restaurants)
     print("Today you will eat lunch at:\n\n{}\n\nEnjoy!".format(restaurant))
+
+
+if __name__ == '__main__':
+    main()
