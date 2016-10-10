@@ -9,7 +9,7 @@ URL = "https://www.yelp.com/user_details_bookmarks?userid={}&cc=US"
 def get_html(url):
     r = requests.get(url)
     if not r.ok:
-        raise r.text
+        raise requests.HTTPError("Page not found, check user_id: {}".format(url))
     return bs4.BeautifulSoup(r.text, 'html.parser')
 
 
