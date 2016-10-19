@@ -2,6 +2,7 @@ import argparse
 import bs4
 import random
 import requests
+from urlparse import urljoin
 
 URL = "https://www.yelp.com/user_details_bookmarks?userid={}&cc=US"
 
@@ -13,9 +14,17 @@ def get_html(url):
     return bs4.BeautifulSoup(r.text, 'html.parser')
 
 
+def parse_restaurant_name(html):
+    return html.find_all('a', {'class': 'biz-name'})[0].text
+
+
+def parse_restaurant_url(html):
+    return urljoin(URL, html.find_all('a', {'class': 'biz-name'})[0]['href'])
+
+
 def parse_restaurants(html):
     restaurants = html.find_all('li', {'class': 'js-bookmark-row'})
-    restaurants = [r.find_all('a', {'class': 'biz-name'})[0].text for r in restaurants]
+    restaurants = [(parse_restaurant_name(r), parse_restaurant_url(r)) for r in restaurants]
     return restaurants
 
 
@@ -63,7 +72,7 @@ def main():
         raise ValueError("No restaurants found!")
     print("Found {} restaurants.".format(len(restaurants)))
     restaurant = random_restaurant(restaurants)
-    print("Today you will eat lunch at:\n\n{}\n\nEnjoy!".format(restaurant))
+    print("Today you will eat lunch at:\n\n{}: {}\n\nEnjoy!".format(*restaurant))
 
 
 if __name__ == '__main__':
