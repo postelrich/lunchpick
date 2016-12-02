@@ -5,6 +5,7 @@ import json
 import random
 import requests
 import os
+from toolz import thread_first
 from urlparse import urljoin
 
 URL = "https://www.yelp.com/user_details_bookmarks?userid={}&cc=US"
@@ -61,7 +62,16 @@ def random_restaurants(restaurants, n):
 
 
 def load_existing_picks(filepath):
-    pass
+    if not os.path.exists(filepath):
+        return None
+    with open(filepath, 'r') as pick_file:
+        data = json.load(pick_file)
+    data["date_generated"] = datetime.datetime.strptime(data["date_generated"], DATE_FORMAT).date()
+    days_til_expire = 7 - data["date_generated"].weekday()
+    expire_day = data["date_generated"] + datetime.timedelta(days_til_expire)
+    if datetime.date.today() >= expire_day:
+        return None
+    return data["picks"]
 
 
 def write_picks(picks, filepath):
@@ -69,6 +79,7 @@ def write_picks(picks, filepath):
             "picks": picks}
     with open(filepath, 'w') as pick_file:
         json.dump(data, pick_file)
+    print("Wrote lunch picks for the next week to: {}".format(filepath))
 
 
 def get_weekly_picks(url, filepath):
@@ -93,8 +104,7 @@ def single_main(args):
     picks = get_bookmarked_restaurants(args.url)
     if not picks:
         raise ValueError("No restaurants found from yelp")
-    pick = random_restaurant(picks)
-    print_pick(pick)
+    thread_first(picks, random_restaurant, print_pick)
 
 
 def weekly_main(args):
@@ -102,8 +112,7 @@ def weekly_main(args):
     if not picks:
         print("Generating new weekly picks...")
         picks = get_weekly_picks(args.url, args.output_file)
-    pick = get_todays_pick(picks)
-    print_pick(pick)
+    thread_first(picks, get_todays_pick, print_pick)
 
 
 def parse_args():
@@ -111,7 +120,7 @@ def parse_args():
     parser.add_argument('-u', '--user-id', type=str, required=True,
                         help='yelp user id')
     parser.add_argument('-f', '--output-file', type=str,
-                        default=os.path.join(os.path.expanduser('~'), 'lunchpicks.json'),
+                        default=os.path.join(os.path.expanduser('~'), '.lunchpicks'),
                         help='output file containing weekly picks')
     parser.add_argument('--one', action='store_true', help="random pick from all choices")
     return parser.parse_args()
