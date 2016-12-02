@@ -1,11 +1,15 @@
 import argparse
 import bs4
+import datetime
+import json
 import random
 import requests
 import os
 from urlparse import urljoin
 
 URL = "https://www.yelp.com/user_details_bookmarks?userid={}&cc=US"
+DAYS_IN_WEEK = 7
+DATE_FORMAT = "%Y%m%d"
 
 
 def get_html(url):
@@ -43,6 +47,7 @@ def get_bookmarked_restaurants(url):
     restaurants = parse_restaurants(html)
     if next_url:
         return restaurants + get_bookmarked_restaurants(next_url)
+    print("Found {} restaurants.".format(len(restaurants)))
     return restaurants
 
 
@@ -59,25 +64,46 @@ def load_existing_picks(filepath):
     pass
 
 
-def get_weekly_picks(url):
-    pass
+def write_picks(picks, filepath):
+    data = {"date_generated": datetime.date.today().strftime(DATE_FORMAT),
+            "picks": picks}
+    with open(filepath, 'w') as pick_file:
+        json.dump(data, pick_file)
+
+
+def get_weekly_picks(url, filepath):
+    restaurants = get_bookmarked_restaurants(url)
+    picks = random_restaurants(restaurants, DAYS_IN_WEEK)
+    if len(picks) < DAYS_IN_WEEK:
+        raise ValueError("Not enough restaurants to generate a week. Try the --one option.")
+    write_picks(picks, filepath)
+    return picks
+
+
+def get_todays_pick(picks):
+    day_of_week = datetime.date.today().weekday()
+    return picks[day_of_week]
+
+
+def print_pick(pick):
+    print("Today you will eat lunch at:\n\n{}: {}\n\nEnjoy!".format(*pick))
 
 
 def single_main(args):
     picks = get_bookmarked_restaurants(args.url)
     if not picks:
         raise ValueError("No restaurants found from yelp")
-    print("Found {} restaurants.".format(len(restaurants)))
-    restaurant = random_restaurant(restaurants)
-    print("Today you will eat lunch at:\n\n{}: {}\n\nEnjoy!".format(*restaurant))
+    pick = random_restaurant(picks)
+    print_pick(pick)
 
 
 def weekly_main(args):
     picks = load_existing_picks(args.output_file)
     if not picks:
         print("Generating new weekly picks...")
-        picks = get_weekly_picks(args.url)
+        picks = get_weekly_picks(args.url, args.output_file)
     pick = get_todays_pick(picks)
+    print_pick(pick)
 
 
 def parse_args():
@@ -85,7 +111,7 @@ def parse_args():
     parser.add_argument('-u', '--user-id', type=str, required=True,
                         help='yelp user id')
     parser.add_argument('-f', '--output-file', type=str,
-                        default=os.path.join(os.path.expanduser('~'), 'lunchpicks.csv'),
+                        default=os.path.join(os.path.expanduser('~'), 'lunchpicks.json'),
                         help='output file containing weekly picks')
     parser.add_argument('--one', action='store_true', help="random pick from all choices")
     return parser.parse_args()
