@@ -2,6 +2,7 @@ import argparse
 import bs4
 import random
 import requests
+import os
 from urlparse import urljoin
 
 URL = "https://www.yelp.com/user_details_bookmarks?userid={}&cc=US"
@@ -36,6 +37,7 @@ def get_next_url(html):
 
 
 def get_bookmarked_restaurants(url):
+    print("Pulling down your bookmarked restaurants...")
     html = get_html(url)
     next_url = get_next_url(html)
     restaurants = parse_restaurants(html)
@@ -48,31 +50,54 @@ def random_restaurant(restaurants):
     return random.choice(restaurants)
 
 
-def format_url(args):
-    url = URL.format(args.user_id)
-    if args.label:
-        url += '&label={}'.format(args.label)
-    return url
+def random_restaurants(restaurants, n):
+    random.shuffle(restaurants)
+    return restaurants[:n]
+
+
+def load_existing_picks(filepath):
+    pass
+
+
+def get_weekly_picks(url):
+    pass
+
+
+def single_main(args):
+    picks = get_bookmarked_restaurants(args.url)
+    if not picks:
+        raise ValueError("No restaurants found from yelp")
+    print("Found {} restaurants.".format(len(restaurants)))
+    restaurant = random_restaurant(restaurants)
+    print("Today you will eat lunch at:\n\n{}: {}\n\nEnjoy!".format(*restaurant))
+
+
+def weekly_main(args):
+    picks = load_existing_picks(args.output_file)
+    if not picks:
+        print("Generating new weekly picks...")
+        picks = get_weekly_picks(args.url)
+    pick = get_todays_pick(picks)
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description='Pick a lunch spot.')
-    parser.add_argument('-u', '--user_id', type=str, required=True,
+    parser = argparse.ArgumentParser(description='Pick a random lunch spot.')
+    parser.add_argument('-u', '--user-id', type=str, required=True,
                         help='yelp user id')
-    parser.add_argument('-l', '--label', type=str, help='bookmark label')
+    parser.add_argument('-f', '--output-file', type=str,
+                        default=os.path.join(os.path.expanduser('~'), 'lunchpicks.csv'),
+                        help='output file containing weekly picks')
+    parser.add_argument('--one', action='store_true', help="random pick from all choices")
     return parser.parse_args()
 
 
 def main():
     args = parse_args()
-    url = format_url(args)
-    print("Pulling down your bookmarked restaurants...")
-    restaurants = get_bookmarked_restaurants(url)
-    if not restaurants:
-        raise ValueError("No restaurants found!")
-    print("Found {} restaurants.".format(len(restaurants)))
-    restaurant = random_restaurant(restaurants)
-    print("Today you will eat lunch at:\n\n{}: {}\n\nEnjoy!".format(*restaurant))
+    args.url = URL.format(args.user_id)
+    if args.one:
+        single_main(args)
+    else:
+        weekly_main(args)
 
 
 if __name__ == '__main__':
