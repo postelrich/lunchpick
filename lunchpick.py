@@ -5,7 +5,7 @@ import json
 import random
 import requests
 import os
-from toolz import thread_first
+from toolz import pipe
 from urlparse import urljoin
 
 URL = "https://www.yelp.com/user_details_bookmarks?userid={}&cc=US"
@@ -104,7 +104,7 @@ def single_main(args):
     picks = get_bookmarked_restaurants(args.url)
     if not picks:
         raise ValueError("No restaurants found from yelp")
-    thread_first(picks, random_restaurant, print_pick)
+    pipe(picks, random_restaurant, print_pick)
 
 
 def weekly_main(args):
@@ -112,7 +112,7 @@ def weekly_main(args):
     if not picks:
         print("Generating new weekly picks...")
         picks = get_weekly_picks(args.url, args.output_file)
-    thread_first(picks, get_todays_pick, print_pick)
+    pipe(picks, get_todays_pick, print_pick)
 
 
 def parse_args():
