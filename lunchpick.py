@@ -6,9 +6,9 @@ import random
 import requests
 import os
 from toolz import pipe
-from urlparse import urljoin
+from urllib.parse import urljoin
 
-URL = "https://www.yelp.com/user_details_bookmarks?userid={}&cc=US"
+URL = "https://www.yelp.com/collection/{}"
 DAYS_IN_WEEK = 7
 DATE_FORMAT = "%Y%m%d"
 
@@ -29,7 +29,7 @@ def parse_restaurant_url(html):
 
 
 def parse_restaurants(html):
-    restaurants = html.find_all('li', {'class': 'js-bookmark-row'})
+    restaurants = html.find_all('li', {'class': 'collection-item'})
     restaurants = [(parse_restaurant_name(r), parse_restaurant_url(r)) for r in restaurants]
     return restaurants
 
